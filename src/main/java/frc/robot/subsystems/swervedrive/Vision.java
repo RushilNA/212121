@@ -50,8 +50,7 @@ public class Vision
   /**
    * April Tag Field Layout of the year.
    */
-  public static final AprilTagFieldLayout fieldLayout                     = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
-  /**
+  public static final AprilTagFieldLayout fieldLayout                     = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();  /**
    * Photon Vision Simulation
    */
   public              VisionSystemSim     visionSim;
@@ -139,7 +138,7 @@ public class Vision
         var pose = poseEst.get();
         swerveDrive.addVisionMeasurement(pose.estimatedPose.toPose2d(),
                                          pose.timestampSeconds,
-                                         getEstimationStdDevs(camera));
+                                         getEstimationStdDevs(camera.LEFT_CAM));
       }
     }
 
@@ -176,7 +175,7 @@ public class Vision
   {
     var    poseEst    = getEstimatedGlobalPose(camera);
     var    estStdDevs = camera.singleTagStdDevs;
-    var    targets    = getLatestResult(camera.LEFT_CAM).getTargets();
+    var    targets    = getLatestResult(camera).getTargets();
     int    numTags    = 0;
     double avgDist    = 0;
     for (var tgt : targets)
@@ -345,9 +344,9 @@ public class Vision
     List<PhotonTrackedTarget> targets = new ArrayList<PhotonTrackedTarget>();
     for (Cameras c : Cameras.values())
     {
-      if (getLatestResult(c).hasTargets())
+      if (getLatestResult(c.LEFT_CAM).hasTargets())
       {
-        targets.addAll(getLatestResult(c).targets);
+        targets.addAll(getLatestResult(c.LEFT_CAM).targets);
       }
     }
 
@@ -435,7 +434,7 @@ public class Vision
     {
       latencyAlert = new Alert("'" + name + "' Camera is experiencing high latency.", AlertType.WARNING);
 
-      camera = new PhotonCamera(name);
+      camera = new PhotonCamera("Cam1");
 
       // https://docs.wpilib.org/en/stable/docs/software/basic-programming/coordinate-system.html
       robotToCamTransform = new Transform3d(robotToCamTranslation, robotToCamRotation);
