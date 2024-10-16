@@ -53,6 +53,8 @@ public class SwerveSubsystem extends SubsystemBase
    * Swerve drive object.
    */
   private final SwerveDrive         swerveDrive;
+  private Alliance _alliance;
+  private Pose2d _speakerPosition;
   /**
    * AprilTag field layout.
    */
@@ -60,7 +62,7 @@ public class SwerveSubsystem extends SubsystemBase
   /**
    * Enable vision odometry updates while driving.
    */
-  private final boolean visionDriveTest = false;
+  private final boolean visionDriveTest = true;
 
   /**
    * Initialize {@link SwerveDrive} with the directory provided.
@@ -85,6 +87,7 @@ public class SwerveSubsystem extends SubsystemBase
 
     // Configure the Telemetry before creating the SwerveDrive to avoid unnecessary objects being created.
     SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
+   
     try
     {
       swerveDrive = new SwerveParser(directory).createSwerveDrive(Constants.MAX_SPEED);
@@ -94,8 +97,15 @@ public class SwerveSubsystem extends SubsystemBase
     {
       throw new RuntimeException(e);
     }
+     swerveDrive.setChassisDiscretization(true, 0.02);
     swerveDrive.setHeadingCorrection(false); // Heading correction should only be used while controlling the robot via angle.
     swerveDrive.setCosineCompensator(false);//!SwerveDriveTelemetry.isSimulation); // Disables cosine compensation for simulations since it causes discrepancies not seen in real life.
+      swerveDrive.setAngularVelocityCompensation(true,
+                                               true,
+                                               0.1); //Correct for skew that gets worse as angular velocity increases. Start with a coefficient of 0.1.
+    // swerveDrive.setModuleEncoderAutoSynchronize(false,
+    //                                             1); // Enable if you want to resynchronize your absolute encoders and motor encoders periodically when they are not moving.
+    // swerveDrive.pushOffsetsToEncoders(); // Set the absolute encoder to be used over the internal encoder and push the offsets onto it. Throws warning if not possible
     if (visionDriveTest)
     {
       setupPhotonVision();
@@ -200,6 +210,8 @@ public class SwerveSubsystem extends SubsystemBase
     return new Rotation2d(relativeTrl.getX(), relativeTrl.getY()).plus(swerveDrive.getOdometryHeading());
   }
 
+
+
   /**
    * Aim the robot at the speaker.
    *
@@ -251,6 +263,89 @@ public class SwerveSubsystem extends SubsystemBase
   {
     // Create a path following command using AutoBuilder. This will also trigger event markers.
     return new PathPlannerAuto(pathName);
+  }
+  private Alliance getAlliance() {
+    if (_alliance == null) {
+        if (DriverStation.getAlliance().isPresent()) {
+            _alliance = DriverStation.getAlliance().get();
+        }
+    }
+    return _alliance;
+  }
+  
+  //Gets coordinates for appriopriate speaker
+  private Pose2d getSpeakerPos() {
+    if (_speakerPosition == null) {
+        if (getAlliance() != null) {
+            _speakerPosition = (getAlliance() == DriverStation.Alliance.Blue) ? Constants.BLUE_SPEAKER
+                    : Constants.RED_SPEAKER;
+        }
+    }
+  
+    return _speakerPosition;
+  }
+  
+  // this setup lets us test the math, but when we actually run the code we don't
+  // have to give a pose estimator
+  public static double getRadiusToSpeakerInMeters(Pose2d robotPose, Pose2d speakerPos) {
+  
+    if (speakerPos == null) return 0;
+    
+    double xDiff = robotPose.getX() - speakerPos.getX();
+    double yDiff = robotPose.getY() - speakerPos.getY();
+    double xPow = Math.pow(xDiff, 2);
+    double yPow = Math.pow(yDiff, 2);
+    // Use pythagorean thm to find hypotenuse, which is our radius
+    return Math.sqrt(xPow + yPow);
+  }
+  
+  
+  public double calcAngleToSpeaker() {
+    if (getAlliance() == Alliance.Blue) {
+        return calcAngleToSpeakerForBlue();
+    } else {
+        return calcAngleToSpeakerForRed();
+    }
+  }
+  
+  public Rotation2d RotToSpeaker() {
+    return Rotation2d.fromDegrees(calcAngleToSpeaker());
+  }
+  
+  private double calcAngleToSpeakerForBlue() {
+    Pose2d pose = swerveDrive.getPose();
+    Pose2d robotPose = swerveDrive.getPose();
+    Pose2d speakerPos = Constants.BLUE_SPEAKER;
+    double xDiff = robotPose.getX() - speakerPos.getX();
+    double yDiff = robotPose.getY() - speakerPos.getY();
+    //System.out.print(xDiff);
+    //System.out.print(yDiff);
+  
+  
+    
+    //System.out.println(180 - Math.toDegrees(Math.atan(yDiff / xDiff)));
+    return 180 - Math.toDegrees(Math.atan(yDiff / xDiff));
+  }
+  
+  private double calcAngleToSpeakerForRed() {
+    Pose2d robotPose = swerveDrive.getPose();
+    Pose2d speakerPos = Constants.RED_SPEAKER;
+    double xDiff = robotPose.getX() - speakerPos.getX();
+    double yDiff = robotPose.getY() - speakerPos.getY();
+    //System.out.print(xDiff);
+    //System.out.print(yDiff);
+    //System.out.println(Math.toDegrees(Math.atan(yDiff / xDiff)));
+    return Math.toDegrees(Math.atan(yDiff / xDiff));
+  }
+  
+  
+  public double calcDistToSpeaker() {
+  swerveDrive.updateOdometry();
+    if(getSpeakerPos()!=null) {
+        return getRadiusToSpeakerInMeters(swerveDrive.getPose(),getSpeakerPos());
+    } else {
+        return 999;
+    }
   }
 
   /**

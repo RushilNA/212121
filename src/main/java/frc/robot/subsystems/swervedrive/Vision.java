@@ -50,7 +50,8 @@ public class Vision
   /**
    * April Tag Field Layout of the year.
    */
-  public static final AprilTagFieldLayout fieldLayout                     = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();  /**
+  public static final AprilTagFieldLayout fieldLayout                     = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
+  /**
    * Photon Vision Simulation
    */
   public              VisionSystemSim     visionSim;
@@ -132,13 +133,13 @@ public class Vision
     }
     for (Cameras camera : Cameras.values())
     {
-      Optional<EstimatedRobotPose> poseEst = getEstimatedGlobalPose(camera.LEFT_CAM);
+      Optional<EstimatedRobotPose> poseEst = getEstimatedGlobalPose(Cameras.Cam1);
       if (poseEst.isPresent())
       {
         var pose = poseEst.get();
         swerveDrive.addVisionMeasurement(pose.estimatedPose.toPose2d(),
                                          pose.timestampSeconds,
-                                         getEstimationStdDevs(camera.LEFT_CAM));
+                                         getEstimationStdDevs(Cameras.Cam1));
       }
     }
 
@@ -155,7 +156,7 @@ public class Vision
    */
   public Optional<EstimatedRobotPose> getEstimatedGlobalPose(Cameras camera)
   {
-    Optional<EstimatedRobotPose> poseEst = filterPose(camera.poseEstimator.update());
+    Optional<EstimatedRobotPose> poseEst = filterPose(Cameras.Cam1.poseEstimator.update());
     // Uncomment to enable outputting of vision targets in sim.
     /*
      poseEst.ifPresent(estimatedRobotPose -> field2d.getObject(camera + " est pose")
@@ -173,9 +174,9 @@ public class Vision
    */
   public Matrix<N3, N1> getEstimationStdDevs(Cameras camera)
   {
-    var    poseEst    = getEstimatedGlobalPose(camera);
+    var    poseEst    = getEstimatedGlobalPose(Cameras.Cam1);
     var    estStdDevs = camera.singleTagStdDevs;
-    var    targets    = getLatestResult(camera).getTargets();
+    var    targets    = getLatestResult(Cameras.Cam1).getTargets();
     int    numTags    = 0;
     double avgDist    = 0;
     for (var tgt : targets)
@@ -292,7 +293,7 @@ public class Vision
   public PhotonTrackedTarget getTargetFromId(int id, Cameras camera)
   {
     PhotonTrackedTarget  target = null;
-    PhotonPipelineResult result = getLatestResult(camera);
+    PhotonPipelineResult result = getLatestResult(Cameras.Cam1);
     if (result.hasTargets())
     {
       for (PhotonTrackedTarget i : result.getTargets())
@@ -344,9 +345,9 @@ public class Vision
     List<PhotonTrackedTarget> targets = new ArrayList<PhotonTrackedTarget>();
     for (Cameras c : Cameras.values())
     {
-      if (getLatestResult(c.LEFT_CAM).hasTargets())
+      if (getLatestResult(c).hasTargets())
       {
-        targets.addAll(getLatestResult(c.LEFT_CAM).targets);
+        targets.addAll(getLatestResult(c).targets);
       }
     }
 
@@ -371,7 +372,7 @@ public class Vision
     /**
      * Left Camera
      */
-    LEFT_CAM("left",
+    Cam1("Cam1",
              new Rotation3d(0, Math.toRadians(-24.094), Math.toRadians(30)),
              new Translation3d(Units.inchesToMeters(12.056),
                                Units.inchesToMeters(10.981),
@@ -434,7 +435,7 @@ public class Vision
     {
       latencyAlert = new Alert("'" + name + "' Camera is experiencing high latency.", AlertType.WARNING);
 
-      camera = new PhotonCamera("Cam1");
+      camera = new PhotonCamera(name);
 
       // https://docs.wpilib.org/en/stable/docs/software/basic-programming/coordinate-system.html
       robotToCamTransform = new Transform3d(robotToCamTranslation, robotToCamRotation);
