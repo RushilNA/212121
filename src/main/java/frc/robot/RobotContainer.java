@@ -35,6 +35,9 @@ import frc.robot.subsystems.Pivoit;
 import frc.robot.subsystems.Projectiles;
 import frc.robot.subsystems.swervedrive.SwerveSubsystem;
 import java.io.File;
+
+import com.pathplanner.lib.commands.PathPlannerAuto;
+
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 
 
@@ -109,13 +112,16 @@ public class RobotContainer
   //  Command Intakescmd = new ParallelCommandGroup(new Rumble(Intake, driverXbox, 0.9, -0.8));
   //   Command Intakefalsecmd = new ParallelCommandGroup(new ParallelCommandGroup(Intake.intakeandfeeder1(0,0)));
 
-
+  
   
 
   public RobotContainer()
   {
+    autochooser.addOption("TEST", new PathPlannerAuto("New Auto"));
+    autochooser.addOption("AMP", new PathPlannerAuto("AMPy"));
    
     configureBindings();
+  SmartDashboard.putData("autochoose",autochooser);
 
     // Applies deadbands and inverts controls because joysticks
     // are back-right positive while robot
@@ -152,10 +158,10 @@ public class RobotContainer
     // // controls are front-left positive
     // // left stick controls translation
     // // right stick controls the angular velocity of the robot
-    // Command driveFieldOrientedAnglularVelocity = drivebase.driveCommand(
-    //     () -> MathUtil.applyDeadband(driverXbox.getLeftY(), OperatorConstants.LEFT_Y_DEADBAND),
-    //     () -> MathUtil.applyDeadband(driverXbox.getLeftX(), OperatorConstants.LEFT_X_DEADBAND),
-    //     () -> driverXbox.getRightX() * 0.5);
+    Command driveFieldOrientedAnglularVelocity = drivebase.driveCommand(
+        () -> MathUtil.applyDeadband(driverXbox.getLeftY(), Constants.OperatorConstants.LEFT_Y_DEADBAND),
+        () -> MathUtil.applyDeadband(driverXbox.getLeftX(), Constants.OperatorConstants.LEFT_X_DEADBAND),
+        () -> driverXbox.getRightX() *0.8);
 
     // Command driveFieldOrientedDirectAngleSim = drivebase.simDriveCommand(
     //     () -> MathUtil.applyDeadband(driverXbox.getLeftY(), OperatorConstants.LEFT_Y_DEADBAND),
@@ -165,7 +171,7 @@ public class RobotContainer
 
         teleop closedFieldRelOperator = new teleop(drivebase, () -> MathUtil.applyDeadband(driverXbox.getLeftY(), Constants.OperatorConstants.LEFT_Y_DEADBAND), () -> MathUtil.applyDeadband(driverXbox.getLeftX(), Constants.OperatorConstants.LEFT_X_DEADBAND), () -> -driverXbox.getRightX(), () -> true);
          drivebase.setDefaultCommand(
-          closedFieldRelOperator);  
+          driveFieldOrientedDirectAngle);  
       
   }
 
